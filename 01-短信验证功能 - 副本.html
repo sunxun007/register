@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>表单注册</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #F7F7F7;
+    }
+
+    ul {
+      margin: 0;
+      padding: 50px;
+      list-style: none;
+    }
+
+    .register {
+      width: 800px;
+      margin: 50px auto;
+      background-color: #FFF;
+      border: 1px solid #CCC;
+      border-radius: 5px;
+    }
+
+    li {
+      overflow: hidden;
+      margin: 20px 0;
+    }
+
+    label,
+    input {
+      display: block;
+      float: left;
+      height: 46px;
+      font-size: 24px;
+      box-sizing: border-box;
+      color: #333;
+    }
+
+    label {
+      width: 200px;
+      line-height: 46px;
+      margin-right: 30px;
+      text-align: right;
+    }
+
+    input {
+      width: 320px;
+      padding: 8px;
+      line-height: 1;
+      outline: none;
+      position: relative;
+    }
+
+    input.code {
+      width: 120px;
+    }
+
+    input.sendBt {
+      width: 190px;
+      margin-left: 10px;
+    }
+
+    input.disabled {
+      background-color: #CCC !important;
+    }
+
+    input[type=button] {
+      border: none;
+      color: #FFF;
+      background-color: #E64145;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .tips {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: 40px;
+      text-align: center;
+
+    }
+
+    .tips p {
+      min-width: 300px;
+      max-width: 400px;
+      line-height: 40px;
+      margin: 0 auto;
+      color: #FFF;
+      display: none;
+      background-color: #E64145;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="register">
+    <form id="ajaxForm">
+      <ul>
+        <li>
+          <label>用户名</label>
+          <input type="text" name="name" class="name">
+        </li>
+        <li>
+          <label>请设置密码</label>
+          <input type="password" name="pass" class="pass">
+        </li>
+        <li>
+          <label>请确认密码</label>
+          <input type="password" class="repass">
+        </li>
+        <li>
+          <label>验证手机</label>
+          <input type="text" name="mobile" class="mobile" id="mobile">
+        </li>
+        <li>
+          <label>短信验证码(1234)</label>
+          <input type="text" name="code" class="code">
+          <input type="button" value="获取验证码" class="sendBt" id="sendBt">
+        </li>
+        <li>
+          <label></label>
+          <input type="button" class="submit" value="立即注册" id="submitBt">
+        </li>
+      </ul>
+    </form>
+  </div>
+  <!-- 提示信息 -->
+  <div class="tips">
+    <p>用户名不能为空</p>
+  </div>
+
+  <script src="jquery-1.12.4.js"></script>
+  <script>
+    // 总需求： 点击获取验证码按钮， 向服务端发送请求, 调用服务器端短信接口, 服务器端根据传参, 调用第三方短信接口, 给手机发送验证码
+
+    function tipsShow(val) {
+      $('.tips > p').text(val).fadeIn(1000).delay(1000).fadeOut(1000);
+    }
+    $("#sendBt").on("click", function () {
+      if ($("#sendBt").hasClass('disabled')) {
+        return;
+      }
+      //     需求1： 格式校验
+      //       (1) 手机号码不能为空 如果为空提示 "手机号不能为空"
+      if ($('#mobile').val().trim() === '') {
+        tipsShow("手机号不能为空")
+        return;
+      }
+      //         (2) 手机号码格式必须正确, 提示 "请输入正确的手机号码"
+      if (!/^\d{11}$/.test($('#mobile').val().trim())) {
+        tipsShow("请输入正确的手机号码")
+        return;
+      }
+      //     需求2： 点击发送时， 按钮显示为 "发送中", 并且不能重复提交请求
+      //     在ajax请求发送之前, 要改变按钮的文字, 改变按钮的背景颜色
+      //     需求3： 根据不同的响应结果， 进行响应。
+      //     (1) 如果接口调用成功
+      //     如果响应代码为100， 倒计时
+      //     如果响应代码为101， 提示手机号重复
+      //       (2) 如果接口调用失败， 告诉用户 "服务器繁忙，请稍候再试"
+      $("#sendBt").val('发送中..').addClass('disabled')
+      $.ajax({
+        url: 'getCode.php',
+        type: 'get',
+        data: {
+          mobile: $('#mobile').val().trim()
+        },
+        dataType: 'json',
+        success: function (res) {
+          // (1) 如果接口调用成功
+          //     如果响应代码为100， 倒计时
+          // if(res.)
+          //     如果响应代码为101， 提示手机号重复
+          if (res.code == 100) {
+            var count = 5;
+            var timeId = setInterval(function () {
+              count--;
+              $("#sendBt").val(count + '秒后重新发送').addClass('disabled')
+              if (count == 0) {
+                clearInterval(timeId)
+                $("#sendBt").val('获取验证码').removeClass('disabled')
+              }
+            }, 1000)
+          } else {
+            tipsShow("手机号码重复");
+            $("#sendBt").val('获取验证码').removeClass('disabled')
+          }
+        },
+        error: function () {
+          tipsShow("服务器繁忙，请稍候再试");
+          $("#sendBt").val('获取验证码').removeClass('disabled')
+        }
+      })
+    })
+
+    $('#submitBt').on("click", function () {
+      if ($('#submitBt').hasClass('disabled')) {
+        return;
+      }
+      // 1. 表单校验
+      // 用户名不能为空
+      if ($('.name').val().trim() == "") {
+        tipsShow("用户名不能为空");
+        return;
+      }
+      // 密码不能为空
+      if ($('.pass').val().trim() == "") {
+        tipsShow("请设置密码");
+        return;
+      }
+      // 密码和确认密码要一致
+      if ($('.pass').val().trim() != $('.repass').val().trim()) {
+        tipsShow("密码和确认密码要一致");
+        return;
+      }
+      // 手机号不能为空
+      if ($('.mobile').val().trim() == "") {
+        tipsShow("手机号不能为空");
+        return;
+      }
+      // 手机号格式必须正确  1开头的 11 位数字
+      if (!/^1\d{10}$/.test($('.mobile').val().trim())) {
+        tipsShow("手机号格式必须正确");
+        return;
+      }
+      // 验证码必须是 4位的数字
+      if (!/^\d{4}$/.test($('.code').val().trim())) {
+        tipsShow("请输入正确的验证码");
+        return;
+      }
+      // 需求2: 不能重复发送请求, 且按钮变成发送中...
+      // 需求3: 发送请求, 处理响应
+
+      // $('#ajaxForm').serialize()
+      // 表单序列化, 可以将表单中带有 name 属性的表单元素, 里面的值全部获取, 
+      // 并进行拼接成 字符串的形式, 这种字符串形式, jQuery 直接支持传输
+      // name=1&pass=2&mobile=15751776666&code=1234
+      // 注册成功, 3秒后跳转到首页 100
+      // 用户名已存在  pp   101
+      // 重置按钮成 再次注册    验证码错误102
+      // 重置按钮成 再次注册
+      $('#submitBt').val('发送中...').addClass('disabled')
+      $.ajax({
+        url: 'register.php',
+        type: 'post',
+        dataType: 'json',
+        data:
+          // {
+          //   name: $('.name').val().trim(),
+          //   pass: $('.pass').val().trim(),
+          //   code: $('.code').val().trim(),
+          //   mobile: $('.mobile').val().trim()
+          // }
+          $('#ajaxForm').serialize()
+
+        ,
+        success: function (res) {
+          if (res.code == 100) {
+            tipsShow("注册成功, 3秒后跳转到首页");
+            setTimeout(function () {
+              // location.href = 'https://www.baidu.com';
+            }, 3000)
+          }
+          if (res.code == 101) {
+            tipsShow("用户名已存在");
+            $("#submitBt").val('再次注册').removeClass('disabled')
+          }
+          if (res.code == 102) {
+            tipsShow("验证码错误");
+            $("#submitBt").val('再次注册').removeClass('disabled')
+          }
+
+        },
+        error: function () {
+          // 提示用户, 服务器繁忙
+          tipsShow("服务器繁忙，请稍候再试");
+          // 重置按钮成 再次注册
+          $("#submitBt").val('再次注册').removeClass('disabled')
+        }
+      })
+
+
+
+
+
+    })
+
+
+  </script>
+
+
+</body>
+
+</html>
